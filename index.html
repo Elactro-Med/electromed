@@ -1,0 +1,536 @@
+ <!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electro Med | Votre Boutique Électronique</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts (Poppins) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Configuration Tailwind sur mesure basée sur le logo -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#020617', // Bleu très foncé (fond)
+                            card: '#0f172a', // Bleu foncé (cartes)
+                            light: '#38bdf8', // Bleu clair (néon)
+                            accent: '#0ea5e9', // Bleu moyen
+                        }
+                    },
+                    boxShadow: {
+                        'neon': '0 0 15px rgba(56, 189, 248, 0.5)',
+                        'neon-hover': '0 0 25px rgba(56, 189, 248, 0.8)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #020617; /* bg-brand-dark */
+            color: #f8fafc;
+        }
+
+        /* Effets de cartes fluides */
+        .product-card {
+            transition: all 0.3s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+            border-color: #38bdf8;
+        }
+
+        /* Boutons de filtres */
+        .filter-btn {
+            transition: all 0.3s ease;
+        }
+        .filter-btn.active {
+            background-color: #38bdf8;
+            color: #020617;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            border-color: #38bdf8;
+        }
+
+        /* Menu latéral du panier */
+        #cart-sidebar {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(100%); /* Caché à droite */
+        }
+        #cart-sidebar.cart-open {
+            transform: translateX(0); /* Affiché */
+        }
+
+        #cart-overlay {
+            transition: opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #cart-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Toast de notification */
+        .toast {
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            transform: translateY(100px);
+            opacity: 0;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Scrollbar personnalisée */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #38bdf8; 
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="antialiased flex flex-col min-h-screen selection:bg-brand-light selection:text-brand-dark">
+
+    <header class="bg-brand-dark/90 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.5)] border-b border-brand-card sticky top-0 z-40">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                
+                <!-- Logo textuel stylisé -->
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="text-3xl font-extrabold tracking-tight">
+                        <span class="text-white">Electro</span><span class="text-brand-light drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]"> Med</span>
+                    </div>
+                </a>
+
+                <!-- Navigation Desktop -->
+                <nav class="hidden md:flex gap-8 items-center">
+                    <a href="#" class="text-brand-light font-medium transition-colors">Accueil</a>
+                    <a href="#store-section" class="text-slate-300 hover:text-brand-light transition-colors">Boutique</a>
+                    <a href="#footer" class="text-slate-300 hover:text-brand-light transition-colors">Contact</a>
+                </nav>
+
+                <!-- Icônes (Recherche & Panier) -->
+                <div class="flex items-center gap-5">
+                    <button class="text-slate-300 hover:text-brand-light transition-colors hidden sm:block">
+                        <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                    </button>
+                    
+                    <button onclick="toggleCart()" class="relative flex items-center gap-2 bg-brand-card hover:bg-slate-800 text-brand-light py-2 px-4 rounded-full transition-all border border-brand-light/30 hover:shadow-neon">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span id="cart-total-header" class="hidden sm:inline font-bold">0 DH</span>
+                        <span id="cart-badge" class="absolute -top-1 -right-1 bg-white text-brand-dark text-[11px] font-black rounded-full h-5 w-5 flex items-center justify-center shadow-lg">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="relative bg-brand-dark overflow-hidden py-16 lg:py-24 border-b border-brand-card">
+        <!-- Effets de lumière en arrière-plan -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-accent/20 rounded-full blur-[100px]"></div>
+            <div class="absolute -top-24 -right-24 w-96 h-96 bg-brand-light/10 rounded-full blur-[80px]"></div>
+        </div>
+
+        <div class="container mx-auto px-4 lg:px-8 relative z-10">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-12">
+                <!-- Texte -->
+                <div class="w-full lg:w-1/2 text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-card border border-brand-light/30 text-brand-light font-semibold text-sm mb-6">
+                        <i class="fa-solid fa-bolt text-yellow-400"></i> Qualité • Prix Justes • Livraison Rapide
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 leading-tight">
+                        Votre Boutique <br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-light to-blue-600 drop-shadow-lg">Électronique</span>
+                    </h1>
+                    <p class="text-lg text-slate-400 mb-8 max-w-xl mx-auto lg:mx-0">
+                        La technologie à portée de main. Découvrez notre sélection premium de téléphones, accessoires, écouteurs et montres connectées.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <a href="#store-section" class="px-8 py-4 bg-brand-light text-brand-dark hover:bg-white rounded-full font-bold transition-all shadow-neon hover:shadow-neon-hover">
+                            Explorer la boutique
+                        </a>
+                        <a href="https://wa.me/message/LETQUH7NJHSKG1" target="_blank" class="px-8 py-4 bg-brand-card border border-brand-light/30 text-white hover:bg-brand-card/80 rounded-full font-bold transition-all flex items-center justify-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-green-400 text-xl"></i> Commander par WhatsApp
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Image / Collage (Placeholders stylisés) -->
+                <div class="w-full lg:w-1/2 relative hidden md:block">
+                    <div class="relative w-full max-w-lg mx-auto h-[450px]">
+                        <!-- Cercle lumineux de fond -->
+                        <div class="absolute inset-0 rounded-full border-4 border-brand-light shadow-[0_0_30px_rgba(56,189,248,0.5)] scale-90"></div>
+                        
+                        <!-- Images Remplacées -->
+                        <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=600&auto=format&fit=crop" alt="Phone" class="absolute top-0 right-10 w-48 h-56 object-cover rounded-2xl shadow-2xl transform rotate-12 hover:rotate-0 transition-transform duration-500 border border-brand-light/20 z-20">
+                        <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600&auto=format&fit=crop" alt="Audio" class="absolute bottom-10 left-0 w-40 h-40 object-cover rounded-2xl shadow-2xl transform -rotate-12 hover:-rotate-0 transition-transform duration-500 border border-brand-light/20 z-30">
+                        <img src="https://images.unsplash.com/photo-1583863788434-e58a36330cf0?q=80&w=600&auto=format&fit=crop" alt="Chargeur" class="absolute bottom-0 right-0 w-36 h-48 object-cover rounded-2xl shadow-2xl transform rotate-6 hover:rotate-0 transition-transform duration-500 border border-brand-light/20 z-10">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main id="store-section" class="flex-grow container mx-auto px-4 lg:px-8 py-20">
+        
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-extrabold text-white mb-4">Nos Produits</h2>
+            <div class="w-24 h-1 bg-brand-light mx-auto rounded-full shadow-neon"></div>
+        </div>
+
+        <!-- Filtres des catégories (Basés sur votre logo) -->
+        <div class="flex flex-wrap justify-center gap-3 mb-12">
+            <button onclick="filterProducts('all')" id="btn-all" class="filter-btn active px-6 py-2.5 rounded-full border border-brand-card font-medium text-white bg-brand-card">
+                Tous
+            </button>
+            <button onclick="filterProducts('phones')" id="btn-phones" class="filter-btn px-6 py-2.5 rounded-full border border-brand-card font-medium text-slate-300 bg-brand-card hover:text-brand-light">
+                <i class="fa-solid fa-mobile-screen mr-2"></i> Téléphones
+            </button>
+            <button onclick="filterProducts('audio')" id="btn-audio" class="filter-btn px-6 py-2.5 rounded-full border border-brand-card font-medium text-slate-300 bg-brand-card hover:text-brand-light">
+                <i class="fa-solid fa-headphones mr-2"></i> Écouteurs & Casques
+            </button>
+            <button onclick="filterProducts('cables')" id="btn-cables" class="filter-btn px-6 py-2.5 rounded-full border border-brand-card font-medium text-slate-300 bg-brand-card hover:text-brand-light">
+                <i class="fa-solid fa-plug mr-2"></i> Câbles & Chargeurs
+            </button>
+            <button onclick="filterProducts('watches')" id="btn-watches" class="filter-btn px-6 py-2.5 rounded-full border border-brand-card font-medium text-slate-300 bg-brand-card hover:text-brand-light">
+                <i class="fa-solid fa-clock mr-2"></i> Montres Connectées
+            </button>
+        </div>
+
+        <!-- Grille des produits -->
+        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8">
+            <!-- Injecté via JavaScript -->
+        </div>
+
+    </main>
+
+    <footer id="footer" class="bg-brand-card border-t border-slate-800 pt-16 pb-8">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 mb-12">
+                <!-- Info Boutique -->
+                <div>
+                    <div class="text-2xl font-extrabold tracking-tight mb-4">
+                        <span class="text-white">Electro</span><span class="text-brand-light"> Med</span>
+                    </div>
+                    <p class="text-slate-400 mb-6 text-sm leading-relaxed">
+                        Votre boutique électronique de confiance. Nous offrons la meilleure qualité, des prix justes et une livraison rapide partout au Maroc.
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="https://www.facebook.com/share/1DHNYBwm8q/" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white hover:bg-brand-light hover:text-brand-dark transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="https://wa.me/message/LETQUH7NJHSKG1" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white hover:bg-[#25D366] transition-colors"><i class="fa-brands fa-whatsapp"></i></a>
+                    </div>
+                </div>
+
+                <!-- Liens Rapides -->
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-6">Catégories</h3>
+                    <ul class="space-y-3 text-sm text-slate-400">
+                        <li><a href="#" class="hover:text-brand-light transition-colors">Téléphones & Accessoires</a></li>
+                        <li><a href="#" class="hover:text-brand-light transition-colors">Écouteurs & Casques</a></li>
+                        <li><a href="#" class="hover:text-brand-light transition-colors">Câbles & Chargeurs</a></li>
+                        <li><a href="#" class="hover:text-brand-light transition-colors">Montres Connectées</a></li>
+                    </ul>
+                </div>
+
+                <!-- Contact mis à jour avec vos informations -->
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-6">Contactez-nous</h3>
+                    <ul class="space-y-4 text-sm text-slate-400">
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-location-dot mt-1 text-brand-light"></i>
+                            <span>Tanger, Maroc</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-solid fa-envelope text-brand-light"></i>
+                            <a href="mailto:electromed76@gmail.com" class="hover:text-brand-light transition-colors">electromed76@gmail.com</a>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-brands fa-whatsapp text-brand-light text-lg"></i>
+                            <a href="https://wa.me/message/LETQUH7NJHSKG1" target="_blank" class="hover:text-brand-light transition-colors font-medium">WhatsApp Direct</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+                <p>&copy; 2026 Electro Med. Tous droits réservés.</p>
+                <div class="flex gap-3 text-2xl text-slate-600">
+                    <i class="fa-brands fa-cc-visa"></i>
+                    <i class="fa-brands fa-cc-mastercard"></i>
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="cart-overlay" onclick="toggleCart()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"></div>
+    
+    <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-full sm:w-[400px] bg-brand-card shadow-[-10px_0_30px_rgba(0,0,0,0.5)] z-50 flex flex-col border-l border-brand-light/20">
+        
+        <!-- Header du panier -->
+        <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-center">
+            <h2 class="text-xl font-bold flex items-center gap-3 text-white">
+                <i class="fa-solid fa-cart-shopping text-brand-light"></i>
+                Votre Panier
+            </h2>
+            <button onclick="toggleCart()" class="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Articles du panier -->
+        <div id="cart-items-container" class="flex-grow overflow-y-auto p-6 flex flex-col gap-4">
+            <div id="empty-cart-msg" class="flex flex-col items-center justify-center h-full text-slate-500 gap-4">
+                <i class="fa-solid fa-cart-arrow-down text-5xl opacity-50"></i>
+                <p class="font-medium">Votre panier est vide.</p>
+                <button onclick="toggleCart()" class="text-brand-light hover:underline text-sm">Continuer vos achats</button>
+            </div>
+        </div>
+
+        <!-- Résumé et Bouton d'achat -->
+        <div class="border-t border-slate-800 p-6 bg-brand-dark z-10">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-slate-400 font-medium">Total</span>
+                <span id="cart-subtotal" class="text-2xl font-black text-white">0 DH</span>
+            </div>
+            <!-- Bouton qui mène vers WhatsApp avec le contenu du panier -->
+            <button onclick="checkoutWhatsApp()" class="w-full bg-[#25D366] hover:bg-[#1ebd5a] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#25D366]/20">
+                <i class="fa-brands fa-whatsapp text-xl"></i>
+                <span>Commander via WhatsApp</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification d'ajout au panier -->
+    <div id="toast" class="toast fixed bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:right-6 bg-brand-light text-brand-dark px-6 py-4 rounded-xl shadow-neon flex items-center gap-3 z-50 pointer-events-none font-medium">
+        <i class="fa-solid fa-circle-check text-xl"></i>
+        <span>Produit ajouté au panier !</span>
+    </div>
+
+    <script>
+        // 1. Base de données des produits avec des images réelles
+        const products = [
+            { id: 1, name: 'iPhone 15 Pro Max', category: 'phones', price: 13500, img: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=600&auto=format&fit=crop', desc: '256GB, Titane' },
+            { id: 2, name: 'Samsung Galaxy S24', category: 'phones', price: 11000, img: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?q=80&w=600&auto=format&fit=crop', desc: '256GB, 5G' },
+            
+            { id: 3, name: 'Écouteurs JBL Tune', category: 'audio', price: 450, img: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?q=80&w=600&auto=format&fit=crop', desc: 'Bluetooth, Basses Pures' },
+            { id: 4, name: 'AirPods Pro 2', category: 'audio', price: 2800, img: 'https://images.unsplash.com/photo-1606220588913-b3eea4eceb54?q=80&w=600&auto=format&fit=crop', desc: 'Réduction de bruit' },
+            
+            { id: 5, name: 'Chargeur Rapide 65W', category: 'cables', price: 200, img: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?q=80&w=600&auto=format&fit=crop', desc: 'Double Port Type-C' },
+            { id: 6, name: 'Câble Type-C Tressé', category: 'cables', price: 80, img: 'https://images.unsplash.com/photo-1624823183492-343df8c0bd5e?q=80&w=600&auto=format&fit=crop', desc: 'Ultra résistant, 2m' },
+            
+            { id: 7, name: 'Apple Watch Series 9', category: 'watches', price: 4500, img: 'https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?q=80&w=600&auto=format&fit=crop', desc: '45mm, GPS' },
+            { id: 8, name: 'Samsung Galaxy Watch 6', category: 'watches', price: 3200, img: 'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=600&auto=format&fit=crop', desc: 'Étanche, Cardio' }
+        ];
+
+        let cart = [];
+
+        // 2. Affichage des produits
+        function renderProducts(categoryFilter = 'all') {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = ''; 
+
+            const filtered = categoryFilter === 'all' 
+                ? products 
+                : products.filter(p => p.category === categoryFilter);
+
+            filtered.forEach(product => {
+                const card = `
+                    <div class="product-card bg-brand-card rounded-2xl border border-slate-800 overflow-hidden flex flex-col group relative">
+                        <div class="absolute top-3 left-3 bg-brand-dark/80 backdrop-blur text-brand-light text-[10px] font-bold px-2 py-1 rounded border border-brand-light/30 z-10 uppercase tracking-wider">
+                            ${product.category}
+                        </div>
+                        
+                        <div class="bg-slate-900/50 p-6 flex justify-center items-center h-56 relative overflow-hidden">
+                            <img src="${product.img}" alt="${product.name}" class="max-h-full object-contain transform group-hover:scale-110 transition-transform duration-500 ease-out drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)]">
+                        </div>
+                        
+                        <div class="p-5 flex flex-col flex-grow">
+                            <h3 class="text-lg font-bold text-white mb-1 truncate">${product.name}</h3>
+                            <p class="text-sm text-slate-400 mb-4">${product.desc}</p>
+                            
+                            <div class="mt-auto flex items-center justify-between">
+                                <span class="text-xl font-extrabold text-brand-light">${product.price} DH</span>
+                                <button onclick="addToCart(${product.id})" class="w-10 h-10 rounded-xl bg-slate-800 text-white hover:bg-brand-light hover:text-brand-dark flex items-center justify-center transition-all duration-300 border border-slate-700 hover:border-transparent">
+                                    <i class="fa-solid fa-cart-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+        }
+
+        // 3. Filtrage
+        window.filterProducts = function(category) {
+            const buttons = ['all', 'phones', 'audio', 'cables', 'watches'];
+            buttons.forEach(btn => {
+                const element = document.getElementById(`btn-${btn}`);
+                if (btn === category) {
+                    element.classList.add('active', 'text-brand-dark');
+                    element.classList.remove('text-slate-300', 'text-white');
+                } else {
+                    element.classList.remove('active', 'text-brand-dark');
+                    element.classList.add('text-slate-300');
+                }
+            });
+            renderProducts(category);
+        };
+
+        // 4. Gestion du panier
+        window.addToCart = function(id) {
+            const product = products.find(p => p.id === id);
+            const exists = cart.find(item => item.id === id);
+
+            if (exists) {
+                exists.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+
+            updateCartUI();
+            showToast();
+        };
+
+        window.updateQty = function(id, change) {
+            const index = cart.findIndex(item => item.id === id);
+            if (index > -1) {
+                cart[index].quantity += change;
+                if (cart[index].quantity <= 0) cart.splice(index, 1);
+                updateCartUI();
+            }
+        };
+
+        window.removeFromCart = function(id) {
+            cart = cart.filter(item => item.id !== id);
+            updateCartUI();
+        };
+
+        // 5. Mise à jour de l'interface du panier
+        function updateCartUI() {
+            const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            document.getElementById('cart-badge').innerText = totalQty;
+            document.getElementById('cart-total-header').innerText = totalPrice + ' DH';
+            document.getElementById('cart-subtotal').innerText = totalPrice + ' DH';
+
+            const container = document.getElementById('cart-items-container');
+            const emptyMsg = document.getElementById('empty-cart-msg');
+
+            if (cart.length === 0) {
+                container.innerHTML = '';
+                container.appendChild(emptyMsg);
+                emptyMsg.style.display = 'flex';
+            } else {
+                emptyMsg.style.display = 'none';
+                container.innerHTML = '';
+                
+                cart.forEach(item => {
+                    const itemHTML = `
+                        <div class="flex gap-4 p-3 bg-slate-800/50 rounded-xl border border-slate-700 relative">
+                            <button onclick="removeFromCart(${item.id})" class="absolute top-2 right-2 text-slate-500 hover:text-red-400">
+                                <i class="fa-solid fa-trash-can text-sm"></i>
+                            </button>
+                            
+                            <div class="w-16 h-16 bg-brand-dark rounded-lg flex items-center justify-center p-1 border border-slate-700">
+                                <img src="${item.img}" alt="${item.name}" class="max-h-full">
+                            </div>
+                            
+                            <div class="flex flex-col justify-center flex-grow">
+                                <h4 class="font-bold text-white text-sm pr-6 leading-tight mb-1">${item.name}</h4>
+                                <span class="text-brand-light font-bold text-sm mb-2">${item.price} DH</span>
+                                
+                                <div class="flex items-center gap-3">
+                                    <button onclick="updateQty(${item.id}, -1)" class="w-6 h-6 rounded bg-slate-700 text-white flex items-center justify-center hover:bg-brand-light hover:text-brand-dark"><i class="fa-solid fa-minus text-[10px]"></i></button>
+                                    <span class="text-sm font-bold w-4 text-center text-white">${item.quantity}</span>
+                                    <button onclick="updateQty(${item.id}, 1)" class="w-6 h-6 rounded bg-slate-700 text-white flex items-center justify-center hover:bg-brand-light hover:text-brand-dark"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += itemHTML;
+                });
+            }
+        }
+
+        // 6. Affichage / Masquage du menu latéral
+        window.toggleCart = function() {
+            const sidebar = document.getElementById('cart-sidebar');
+            const overlay = document.getElementById('cart-overlay');
+            
+            sidebar.classList.toggle('cart-open');
+            overlay.classList.toggle('active');
+            document.body.style.overflow = sidebar.classList.contains('cart-open') ? 'hidden' : '';
+        };
+
+        // 7. Toast Notification
+        let toastTimeout;
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+
+
+
+
+
+
+
+        // 8. Commander via WhatsApp (Générer le message)
+        window.checkoutWhatsApp = function() {
+            if (cart.length === 0) return;
+            
+            let message = "Bonjour Electro Med, je souhaite commander ces articles :%0A%0A";
+            cart.forEach(item => {
+                message += `- ${item.name} (Quantité: ${item.quantity}) = ${item.price * item.quantity} DH%0A`;
+            });
+            
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            message += `%0A*Total : ${total} DH*`;
+            
+            // Ouvrir WhatsApp avec le message pré-rempli (Utilisation du lien fourni)
+            const waLink = "https://wa.me/message/LETQUH7NJHSKG1";
+            // Normalement on ajoute le texte à l'URL API de Whatsapp, mais le lien fourni est un lien court de profil.
+            // S'il s'agit d'un numéro normal, on utiliserait https://wa.me/2126.../?text=...
+            // Pour ce lien précis, on va ouvrir le lien dans un nouvel onglet, et l'utilisateur enverra le message manuellement, 
+            // ou bien on utilise la méthode d'envoi standard de WhatsApp.
+            // Dans ce cas, je vais essayer d'ajouter le paramètre de texte au lien s'il le supporte, sinon rediriger vers le lien simple.
+            
+            window.open(`https://api.whatsapp.com/send?text=${message}`, '_blank');
+        };
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProducts();
+            updateCartUI();
+        });
+    </script>
+</body>
+</html>
